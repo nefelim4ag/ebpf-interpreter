@@ -5,7 +5,7 @@
 // This file may be distributed under the terms of the GNU GPLv3 license.
 
 #include <stdint.h>
-#include "tiny_ebpf.h"
+#include "bpf.h"
 
 #define dummy() (BPF_CALL_N(1))
 #define sum(a, b) (BPF_CALL_N2(2, a, b))

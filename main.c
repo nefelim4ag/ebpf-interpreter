@@ -170,14 +170,15 @@ static void usage(const char *prog) {
 }
 
 void
-platform_helper_call(uint32_t id, uint64_t *r0, uint64_t r1,
-    uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5) {
+platform_helper_call(uint32_t id, size_t *r0, size_t r1,
+    size_t r2, size_t r3, size_t r4, size_t r5) {
     switch (id) {
         // dummy()
         case 1: *r0 = 2; break;
         // sum(a, b)
         case 2: *r0 = r1 + r2; break;
-        case 3: printf("print %d\n", r1); break;
+        case 3: printf("print %lu\n", r1); break;
+        default: printf("unknown id\n"); break;
     }
 }
 
@@ -259,14 +260,18 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    if (ebpf_prog_disasm(prog_start, prog_size) != 0)
-        exit(1);
+    struct ebpf_context prog = {
+        .mode = EBPF_MODE_INT_DEBUG,
+        .prog_start = prog_start,
+        .prog_size = prog_size,
+    };
 
     fprintf(stdout, "Test interpreter\n");
-    uint64_t ebpf_argv[2] = {0, 0};
-    uint64_t *ptr = &ebpf_argv[0];
-    int ret = ebpf_interpreter(prog_start, prog_size, 2, &ptr);
-    printf("Execution result: %d\n", ret);
+    int ret = ebpf_interpreter(&prog);
+    if (ret < 0) {
+        printf("ebpf_interpreter failed\n");
+    }
+    printf("Execution result: %lu\n", prog.R[0]);
 
     print_elf64(base, size);
 

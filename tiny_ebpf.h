@@ -1,7 +1,6 @@
-#include <stdint.h>
-
 #ifndef TINY_EBPF_H
 #define TINY_EBPF_H
+#include <stdint.h>
 
 // Classes
 #define BPF_LD      0x00
@@ -58,17 +57,10 @@
 #define BPF_MEM    0x60
 #define BPF_ATOMIC 0xc0
 
-#define BPF_LD_MASK 0xe0
-
 #define BPF_W  0x00 // 32 - 4 bytes
 #define BPF_H  0x08 // 16 - 2 bytes
 #define BPF_B  0x10 // 8 - 1 byte
 #define BPF_DW 0x18 // 64 - 8 bytes
-
-#define BPF_LD_MEM  (BPF_LD  | BPF_MEM)
-#define BPF_LDX_MEM (BPF_LDX | BPF_MEM)
-#define BPF_ST_MEM  (BPF_ST  | BPF_MEM)
-#define BPF_STX_MEM (BPF_STX | BPF_MEM)
 
 struct ebpf_instruct {
     uint8_t opcode;
@@ -78,59 +70,24 @@ struct ebpf_instruct {
     uint32_t imm;
 };
 
-int ebpf_prog_disasm(uint8_t *prog, uint32_t size);
-int ebpf_interpreter(const uint8_t *prog, uint32_t prog_size, int argc, uint64_t **argv);
+// Runtime
+#define EBPF_MODE_INT 0
+#define EBPF_MODE_INT_DEBUG 1
+#define EBPF_MODE_DISASM 2
+
+struct ebpf_context {
+    size_t R[11];
+    uint8_t stack[512];
+    uint8_t mode;
+    uint8_t *prog_start;
+    size_t prog_size;
+};
+
+int ebpf_interpreter(struct ebpf_context *ctx);
 
 // Platform helpers
 void
-platform_helper_call(uint32_t id, uint64_t *r0, uint64_t r1,
-                     uint64_t r2, uint64_t r3,  uint64_t r4, uint64_t r5);
-
-// Macro magic
-#define BPF_CALL_N(N) \
-    ({ register unsigned long long _r  __asm__("r0"); \
-    __asm__ volatile ("call %1" : "=r"(_r) : "i"(N)); \
-    _r; })
-#define BPF_CALL_N1(N, A1) \
-    ({ register unsigned long long _r  __asm__("r0"); \
-       register unsigned long long _a1 __asm__("r1") = (unsigned long long)(A1); \
-       __asm__ volatile ("call %1" : "=r"(_r) : "i"(N), "r"(_a1)); \
-       _r; })
-#define BPF_CALL_N2(N, A1, A2) \
-    ({ register unsigned long long _r  __asm__("r0"); \
-        register unsigned long long _a1 __asm__("r1") = (unsigned long long)(A1); \
-        register unsigned long long _a2 __asm__("r2") = (unsigned long long)(A2); \
-        __asm__ volatile ("call %1" : "=r"(_r) : "i"(N), "r"(_a1), "r"(_a2)); \
-        _r; })
-#define BPF_CALL_N3(N, A1, A2, A3) \
-    ({ register unsigned long long _r  __asm__("r0"); \
-        register unsigned long long _a1 __asm__("r1") = (unsigned long long)(A1); \
-        register unsigned long long _a2 __asm__("r2") = (unsigned long long)(A2); \
-        register unsigned long long _a3 __asm__("r3") = (unsigned long long)(A3); \
-        __asm__ volatile ("call %1" : "=r"(_r) : "i"(N), "r"(_a1), "r"(_a2), "r"(_a3)); \
-        _r; })
-#define BPF_CALL_N4(N, A1, A2, A3, A4) \
-    ({ register unsigned long long _r  __asm__("r0"); \
-        register unsigned long long _a1 __asm__("r1") = (unsigned long long)(A1); \
-        register unsigned long long _a2 __asm__("r2") = (unsigned long long)(A2); \
-        register unsigned long long _a3 __asm__("r3") = (unsigned long long)(A3); \
-        register unsigned long long _a4 __asm__("r4") = (unsigned long long)(A4); \
-        __asm__ volatile ("call %1" : "=r"(_r) : "i"(N), "r"(_a1), "r"(_a2), "r"(_a3), "r"(_a4)); \
-        _r; })
-#define BPF_CALL_N5(N, A1, A2, A3, A4, A5) \
-    ({ register unsigned long long _r  __asm__("r0"); \
-        register unsigned long long _a1 __asm__("r1") = (unsigned long long)(A1); \
-        register unsigned long long _a2 __asm__("r2") = (unsigned long long)(A2); \
-        register unsigned long long _a3 __asm__("r3") = (unsigned long long)(A3); \
-        register unsigned long long _a4 __asm__("r4") = (unsigned long long)(A4); \
-        register unsigned long long _a5 __asm__("r5") = (unsigned long long)(A5); \
-        __asm__ volatile ("call %1" : "=r"(_r) : "i"(N), "r"(_a1), "r"(_a2), "r"(_a3), "r"(_a4), "r"(_a5)); \
-        _r; })
-
-
-#ifndef __section
-# define __section(NAME)                  \
-__attribute__((section(NAME), used))
-#endif
+platform_helper_call(uint32_t id, size_t *r0, size_t r1,
+                     size_t r2, size_t r3,  size_t r4, size_t r5);
 
 #endif // TINY_EBPF_H
