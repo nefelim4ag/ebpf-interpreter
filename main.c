@@ -261,10 +261,11 @@ int main(int argc, char *argv[]) {
     }
 
     struct ebpf_context prog = {
-        .mode = EBPF_MODE_INT_DEBUG,
+        .mode = EBPF_MODE_DISASM,
         .prog_start = prog_start,
         .prog_size = prog_size,
     };
+    prog.R[1] = 1;
 
     fprintf(stdout, "Test interpreter\n");
     int ret = ebpf_interpreter(&prog);
